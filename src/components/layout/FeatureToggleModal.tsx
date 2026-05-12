@@ -151,6 +151,12 @@ export function FeatureToggleModal({ isOpen, onClose }: FeatureToggleModalProps)
       label: "Single Hypothesis Mode",
       description: "Forces a single diagnostic pathway: hides framing prompts, uncertainty indicators and document gates.",
       category: "System Logic"
+    },
+    {
+      key: "FEATURE_HIDE_EVIDENCE_BY_TAG",
+      label: "Hide Evidence By Tag",
+      description: "Hides the switch to view evidence by tag in the Evidence workspace.",
+      category: "UI Enhancements"
     }
   ];
 

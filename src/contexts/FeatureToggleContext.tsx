@@ -22,6 +22,7 @@ export type FeatureFlags = {
   FEATURE_SESSION_DETAILS: boolean;
   FEATURE_SINGLE_HYPOTHESIS: boolean;
   FEATURE_COMPACT_HUD: boolean;
+  FEATURE_HIDE_EVIDENCE_BY_TAG: boolean;
 };
 
 const DEFAULT_FLAGS: FeatureFlags = {
@@ -46,6 +47,7 @@ const DEFAULT_FLAGS: FeatureFlags = {
   FEATURE_SESSION_DETAILS: false,
   FEATURE_SINGLE_HYPOTHESIS: false,
   FEATURE_COMPACT_HUD: true,
+  FEATURE_HIDE_EVIDENCE_BY_TAG: false,
 };
 
 interface FeatureToggleContextType {

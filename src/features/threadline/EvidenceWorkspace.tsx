@@ -102,7 +102,8 @@ export function EvidenceWorkspace({
   const [activeSessionId, setActiveSessionId] = useState<string | null>(sessions[0]?.id || null);
   const [activeItemLabel, setActiveItemLabel] = useState<string | null>(null);
   const [activeType, setActiveType] = useState<'session' | 'criteria' | 'nextstep' | 'assessment' | 'document' | 'tag'>('session');
-  const [groupBy, setGroupBy] = useState<'source' | 'tag'>('source');
+  const [groupByUI, setGroupByUI] = useState<'source' | 'tag'>('source');
+  const groupBy = flags.FEATURE_HIDE_EVIDENCE_BY_TAG ? 'source' : groupByUI;
   
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -387,30 +388,32 @@ export function EvidenceWorkspace({
                 <ChevronLeft size={18} />
               </Button>
             </div>
-            <div className="flex p-1 bg-gray-200/50 rounded-lg w-full mt-2">
-               <button
-                  className={cn("flex-1 text-xs font-semibold py-1.5 rounded-md transition-all text-center", groupBy === 'source' ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700")}
-                  onClick={() => {
-                      setGroupBy('source'); 
-                      if (activeType === 'tag') {
-                        if (localSessions.length > 0) {
-                          setActiveType('session'); setActiveSessionId(localSessions[0].id); setActiveItemLabel(null);
+            {!flags.FEATURE_HIDE_EVIDENCE_BY_TAG && (
+              <div className="flex p-1 bg-gray-200/50 rounded-lg w-full mt-2">
+                 <button
+                    className={cn("flex-1 text-xs font-semibold py-1.5 rounded-md transition-all text-center", groupBy === 'source' ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700")}
+                    onClick={() => {
+                        setGroupByUI('source'); 
+                        if (activeType === 'tag') {
+                          if (localSessions.length > 0) {
+                            setActiveType('session'); setActiveSessionId(localSessions[0].id); setActiveItemLabel(null);
+                          }
                         }
-                      }
-                  }}
-               >By Source</button>
-               <button
-                  className={cn("flex-1 text-xs font-semibold py-1.5 rounded-md transition-all text-center", groupBy === 'tag' ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700")}
-                  onClick={() => {
-                      setGroupBy('tag'); 
-                      if (activeType === 'session' || activeType === 'assessment' || activeType === 'document') {
-                        if (tagGroups.length > 0) {
-                          setActiveType('tag'); setActiveItemLabel(tagGroups[0].id); setActiveSessionId(null);
+                    }}
+                 >By Source</button>
+                 <button
+                    className={cn("flex-1 text-xs font-semibold py-1.5 rounded-md transition-all text-center", groupBy === 'tag' ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700")}
+                    onClick={() => {
+                        setGroupByUI('tag'); 
+                        if (activeType === 'session' || activeType === 'assessment' || activeType === 'document') {
+                          if (tagGroups.length > 0) {
+                            setActiveType('tag'); setActiveItemLabel(tagGroups[0].id); setActiveSessionId(null);
+                          }
                         }
-                      }
-                  }}
-               >By Tag</button>
-            </div>
+                    }}
+                 >By Tag</button>
+              </div>
+            )}
           </div>
         ) : (
           <Button 
@@ -430,7 +433,7 @@ export function EvidenceWorkspace({
           {/* Evidence Category */}
           {groupBy === 'source' ? (
             <ReviewCategory 
-              title={`Evidence by Source (${localSessions.length + assessmentItems.length + documentItems.length})`}
+              title={flags.FEATURE_HIDE_EVIDENCE_BY_TAG ? `EVIDENCE (${localSessions.length + assessmentItems.length + documentItems.length})` : `Evidence by Source (${localSessions.length + assessmentItems.length + documentItems.length})`}
               items={[
                 ...localSessions.map((s: any) => ({ label: s.focus || "Clinical Snapshot", score: "0.95", type: "session", id: s.id, hasConflict: s.hasConflict })),
                 ...assessmentItems,
