@@ -1,0 +1,46 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700&family=Frank+Ruhl+Libre:wght@300;400;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@theme {
+  --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Frank Ruhl Libre", ui-serif, Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Brand Colors */
+  --color-primary: #06302c;
+  --color-primary-light: #e8f0ef;
+  
+  /* Status Colors */
+  --color-success: #388e3c;
+  --color-success-mid: #8bc34a;
+  --color-success-light: #ecf2eb;
+  
+  --color-info: #03a9f4;
+  --color-info-light: #e9f2f9;
+  
+  --color-error: #f44336;
+  --color-error-light: #ffd9e8;
+  
+  --color-warning: #ff9800;
+  
+  --color-gray-muted: #b0adad;
+  --color-gray-light: #f0efef;
+  
+  /* Text & Border */
+  --color-text-primary: #0f172a;
+  --color-text-secondary: rgba(15,23,42,0.6);
+  --color-divider: rgba(0,0,0,0.12);
+  
+  /* Workspace */
+  --color-workspace-bg: #fcfcfc;
+  --color-surface: #ffffff;
+  --color-avatar-bg: #e4e0dc;
+}
+
+@layer base {
+  html, body {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
