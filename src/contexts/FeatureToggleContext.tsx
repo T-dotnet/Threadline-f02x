@@ -99,9 +99,9 @@ export function FeatureToggleProvider({ children }: { children: React.ReactNode 
 
   const setAllFlags = (value: boolean) => {
     setFlags((prev) => {
-      const newFlags = { ...prev };
-      Object.keys(newFlags).forEach((key) => {
-        (newFlags as any)[key] = value;
+      const newFlags = { ...prev } as FeatureFlags;
+      (Object.keys(newFlags) as Array<keyof FeatureFlags>).forEach((key) => {
+        newFlags[key] = value;
       });
       return newFlags;
     });

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useMemo } from "react";
 import { 
   ArrowLeft, 
   RotateCcw, 
@@ -33,23 +33,24 @@ import {
 import { motion, AnimatePresence } from "motion/react";
 
 // UI Components
-import { 
-  Button, 
-  Badge, 
-  Card, 
-  Typography, 
-  Input, 
+import {
+  Button,
+  Badge,
+  Card,
+  Typography,
+  Input,
   Modal,
   Toast,
   DataPoint
 } from "../../components/ui";
+import { CollapsibleSection } from "../../components/ui/CollapsibleSection";
 import { StatusBadge } from "../../components/shared/StatusBadge";
 import { ConfidenceBadge, mapScoreToConfidence } from "../../components/shared/ConfidenceBadge";
 import { ImpactBadge, mapScoreToImpact } from "../../components/shared/ImpactBadge";
 import { SectionHeader } from "../../components/shared/SectionHeader";
 import { WorkspaceContainer } from "../../components/layout/WorkspaceContainer";
 import { WorkspaceLayout } from "../../components/layout/WorkspaceLayout";
-import { cn } from "../../lib/utils";
+import { cn, normalizeTags } from "../../lib/utils";
 import { ProgressBanner } from "./components/ProgressBanner";
 
 // Context & Domain
@@ -124,42 +125,41 @@ export function EvidenceWorkspace({
   const [rationale, setRationale] = useState("");
   const rationaleRef = useRef<HTMLTextAreaElement>(null);
 
-  // Derived data
-  const currentSession = localSessions.find((s: any) => s.id === activeSessionId);
-  const criteriaItems = localEvidenceItems.filter(i => i.type === 'criteria');
-  const nextStepItems = localEvidenceItems.filter(i => i.type === 'nextstep');
-  const assessmentItems = localEvidenceItems.filter(i => i.type === 'assessment');
-  const documentItems = localEvidenceItems.filter(i => i.type === 'document');
+  // Derived data — memoized to avoid recomputing on every render
+  const currentSession = useMemo(
+    () => localSessions.find((s: any) => s.id === activeSessionId),
+    [localSessions, activeSessionId]
+  );
+  const criteriaItems = useMemo(() => localEvidenceItems.filter(i => i.type === 'criteria'), [localEvidenceItems]);
+  const nextStepItems = useMemo(() => localEvidenceItems.filter(i => i.type === 'nextstep'), [localEvidenceItems]);
+  const assessmentItems = useMemo(() => localEvidenceItems.filter(i => i.type === 'assessment'), [localEvidenceItems]);
+  const documentItems = useMemo(() => localEvidenceItems.filter(i => i.type === 'document'), [localEvidenceItems]);
 
-  // Compute Tag Groups
-  const allEvidenceSnippets = [
-    ...localSessions.flatMap(s => (s.evidence || []).map((f: any) => ({ ...f, sourceSession: s.focus || 'Clinical Snapshot', sourceTimestamp: s.date }))),
-    ...assessmentItems.flatMap(a => (a.findings || []).map((f: any) => ({ ...f, sourceSession: a.label, sourceTimestamp: "Apr 21, 2024" }))),
-    ...documentItems.flatMap(d => (d.findings || []).map((f: any) => ({ ...f, sourceSession: d.label, sourceTimestamp: "Apr 21, 2024" })))
-  ];
-
-  const tagsMap = new Map<string, any[]>();
-  allEvidenceSnippets.forEach(snippet => {
-    let tags: string[] = [];
-    if (Array.isArray(snippet.tags)) tags = snippet.tags;
-    else if (snippet.tag) tags = snippet.tag.split(',').map((t: string) => t.trim()).filter(Boolean);
-    
-    if (tags.length === 0) tags = ["untagged"];
-    
-    tags.forEach((t: string) => {
-      const lowerT = t.toLowerCase();
-      if (!tagsMap.has(lowerT)) tagsMap.set(lowerT, []);
-      tagsMap.get(lowerT)!.push(snippet);
+  // Compute Tag Groups — only recomputes when source data changes
+  const tagGroups = useMemo(() => {
+    const allEvidenceSnippets = [
+      ...localSessions.flatMap((s: any) => (s.evidence || []).map((f: any) => ({ ...f, sourceSession: s.focus || 'Clinical Snapshot', sourceTimestamp: s.date }))),
+      ...assessmentItems.flatMap(a => (a.findings || []).map((f: any) => ({ ...f, sourceSession: a.label, sourceTimestamp: "Apr 21, 2024" }))),
+      ...documentItems.flatMap(d => (d.findings || []).map((f: any) => ({ ...f, sourceSession: d.label, sourceTimestamp: "Apr 21, 2024" })))
+    ];
+    const tagsMap = new Map<string, any[]>();
+    allEvidenceSnippets.forEach(snippet => {
+      let tags = normalizeTags(snippet.tags ?? snippet.tag);
+      if (tags.length === 0) tags = ["untagged"];
+      tags.forEach((t: string) => {
+        const lowerT = t.toLowerCase();
+        if (!tagsMap.has(lowerT)) tagsMap.set(lowerT, []);
+        tagsMap.get(lowerT)!.push(snippet);
+      });
     });
-  });
-
-  const tagGroups = Array.from(tagsMap.entries()).map(([tag, items]) => ({
-    id: `tag-${tag}`,
-    label: tag.charAt(0).toUpperCase() + tag.slice(1),
-    type: 'tag' as const,
-    score: "0.95",
-    findings: items
-  })).sort((a, b) => b.findings.length - a.findings.length);
+    return Array.from(tagsMap.entries()).map(([tag, items]) => ({
+      id: `tag-${tag}`,
+      label: tag.charAt(0).toUpperCase() + tag.slice(1),
+      type: 'tag' as const,
+      score: "0.95",
+      findings: items
+    })).sort((a, b) => b.findings.length - a.findings.length);
+  }, [localSessions, assessmentItems, documentItems]);
 
   // Sync state when client changes
   React.useEffect(() => {
@@ -198,35 +198,39 @@ export function EvidenceWorkspace({
     // Only run when client ID changes to avoid clearing manual progress
   }, [clientId]);
   
-  const currentList = activeType === 'session' ? [] : (
-    activeType === 'tag' ? tagGroups : (
-      activeType === 'criteria' ? criteriaItems : (
-        activeType === 'assessment' ? assessmentItems : (
-          activeType === 'document' ? documentItems : nextStepItems
-        )
-      )
-    )
-  );
+  const currentList = useMemo(() => {
+    if (activeType === 'session') return [];
+    if (activeType === 'tag') return tagGroups;
+    if (activeType === 'criteria') return criteriaItems;
+    if (activeType === 'assessment') return assessmentItems;
+    if (activeType === 'document') return documentItems;
+    return nextStepItems;
+  }, [activeType, tagGroups, criteriaItems, assessmentItems, documentItems, nextStepItems]);
 
-  const currentItem = activeType === 'session' 
-    ? (currentSession ? { ...currentSession, type: 'session', label: currentSession.focus, findings: currentSession.evidence } : null) 
-    : currentList.find(i => (i.id || i.label) === activeItemLabel) || null;
+  const currentItem = useMemo(() => {
+    if (activeType === 'session') {
+      return currentSession ? { ...currentSession, type: 'session', label: currentSession.focus, findings: currentSession.evidence } : null;
+    }
+    return currentList.find(i => (i.id || i.label) === activeItemLabel) || null;
+  }, [activeType, currentSession, currentList, activeItemLabel]);
 
   const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
 
-  const requiredItems = [
+  const requiredItems = useMemo(() => [
     ...(groupBy === 'source' ? [
-      ...localSessions.map((s:any) => s.id),
+      ...localSessions.map((s: any) => s.id),
       ...assessmentItems.map(i => i.label),
       ...documentItems.map(i => i.label)
     ] : tagGroups.map(t => t.id)),
     ...criteriaItems.map(i => i.label)
-  ];
+  ], [groupBy, localSessions, assessmentItems, documentItems, tagGroups, criteriaItems]);
+
   const totalRequiredItems = requiredItems.length;
 
-  const currentRequiredProgress = requiredItems.filter(id => 
-    acceptedItems.includes(id) || !!rejectedItems[id]
-  ).length;
+  const currentRequiredProgress = useMemo(() =>
+    requiredItems.filter(id => acceptedItems.includes(id) || !!rejectedItems[id]).length,
+    [requiredItems, acceptedItems, rejectedItems]
+  );
 
   const isAllRequiredReviewed = currentRequiredProgress === totalRequiredItems;
 
@@ -600,10 +604,13 @@ export function EvidenceWorkspace({
     </div>
   );
 
-  const allEvidenceFindingsPool = localSessions.flatMap(s => (s.evidence || []).map((ev: any) => ({
-    ...ev,
-    sourceSession: s.focus
-  })));
+  const allEvidenceFindingsPool = useMemo(() =>
+    localSessions.flatMap((s: any) => (s.evidence || []).map((ev: any) => ({
+      ...ev,
+      sourceSession: s.focus
+    }))),
+    [localSessions]
+  );
 
   const mainContent = (
     <div className="flex flex-col h-full bg-workspace-bg overflow-hidden relative">
@@ -698,8 +705,6 @@ export function EvidenceWorkspace({
         allFindingsPool={allEvidenceFindingsPool}
         groupBy={groupBy}
         onSave={(data) => {
-          console.log("EvidenceWorkspace: Modified item", data);
-          
           if (isAddMode) {
             const newId = `new-${addEvidenceType}-${Date.now()}`;
             const newItem = {
@@ -803,29 +808,18 @@ export function EvidenceWorkspace({
                                   label: "SOURCE", 
                                   value: <MetadataValue icon={Clock} text={`${currentSession?.focus} • ${snippet.timestamp}`} /> 
                                 },
-                                ...(Array.isArray(snippet.tags) ? (snippet.tags.length ? [{ 
-                                  label: "TAGS", 
+                                ...(normalizeTags(snippet.tags ?? snippet.tag).length ? [{
+                                  label: "TAGS",
                                   value: (
                                     <div className="flex flex-wrap gap-1">
-                                      {snippet.tags.map((tag: string) => (
+                                      {normalizeTags(snippet.tags ?? snippet.tag).map((tag: string) => (
                                         <Badge key={tag} variant="soft" className="px-2 py-0.5 text-xs text-slate-500 font-mono">
                                           {tag}
                                         </Badge>
                                       ))}
                                     </div>
-                                  ) 
-                                }] : []) : (snippet.tag ? [{
-                                    label: "TAGS",
-                                    value: (
-                                        <div className="flex flex-wrap gap-1">
-                                          {snippet.tag.split(',').map((t: string) => t.trim()).filter(Boolean).map((tag: string) => (
-                                            <Badge key={tag} variant="soft" className="px-2 py-0.5 text-xs text-slate-500 font-mono">
-                                              {tag}
-                                            </Badge>
-                                          ))}
-                                        </div>
-                                      )
-                                }] : [])),
+                                  )
+                                }] : []),
                                 { 
                                   label: "FRAMEWORK", 
                                   value: <MetadataValue icon={BookOpen} text={snippet.framework} /> 
@@ -995,9 +989,9 @@ export function EvidenceWorkspace({
                                       titleClassName="text-base font-semibold text-slate-800 leading-snug"
                                       metadata={[
                                         { label: "SOURCE", value: `${currentItem?.label} • ${finding.timestamp}` },
-                                        ...(finding.tags?.length || finding.tag ? [{ label: "TAGS", value: (
+                                        ...(normalizeTags(finding.tags ?? finding.tag).length ? [{ label: "TAGS", value: (
                                           <div className="flex flex-wrap gap-1">
-                                            {(Array.isArray(finding.tags) ? finding.tags : (finding.tag || '').split(',').map((t: string) => t.trim()).filter(Boolean)).map((tag: string) => (
+                                            {normalizeTags(finding.tags ?? finding.tag).map((tag: string) => (
                                               <Badge key={tag} variant="soft" className="px-2 py-0.5 text-xs text-slate-500 font-mono">
                                                 {tag}
                                               </Badge>
@@ -1023,9 +1017,9 @@ export function EvidenceWorkspace({
                             titleClassName="text-base font-semibold text-slate-800 leading-snug"
                             metadata={[
                               { label: "SOURCE", value: `${currentItem?.label} • ${finding.timestamp}` },
-                              ...(finding.tags?.length || finding.tag ? [{ label: "TAGS", value: (
+                              ...(normalizeTags(finding.tags ?? finding.tag).length ? [{ label: "TAGS", value: (
                                 <div className="flex flex-wrap gap-1">
-                                  {(Array.isArray(finding.tags) ? finding.tags : (finding.tag || '').split(',').map((t: string) => t.trim()).filter(Boolean)).map((tag: string) => (
+                                  {normalizeTags(finding.tags ?? finding.tag).map((tag: string) => (
                                     <Badge key={tag} variant="soft" className="px-2 py-0.5 text-xs text-slate-500 font-mono">
                                       {tag}
                                     </Badge>
@@ -1094,17 +1088,17 @@ export function EvidenceWorkspace({
                                                     label: "SOURCE", 
                                                     value: <MetadataValue icon={Clock} text={`${evidence.sourceSession || currentItem?.label} • ${evidence.timestamp}`} /> 
                                                   },
-                                                  ...(evidence.tags?.length || evidence.tag ? [{ 
-                                                    label: "TAGS", 
+                                                  ...(normalizeTags(evidence.tags ?? evidence.tag).length ? [{
+                                                    label: "TAGS",
                                                     value: (
                                                       <div className="flex flex-wrap gap-1">
-                                                        {(Array.isArray(evidence.tags) ? evidence.tags : (evidence.tag || '').split(',').map((t: string) => t.trim()).filter(Boolean)).map((tag: string) => (
+                                                        {normalizeTags(evidence.tags ?? evidence.tag).map((tag: string) => (
                                                           <Badge key={tag} variant="soft" className="px-2 py-0.5 text-xs text-slate-500 font-mono">
                                                             {tag}
                                                           </Badge>
                                                         ))}
                                                       </div>
-                                                    ) 
+                                                    )
                                                   }] : []),
                                                   { 
                                                     label: "FRAMEWORK", 
@@ -1428,8 +1422,6 @@ interface ReviewCategoryProps {
   onSelect: (id: string, type: string) => void;
   children?: React.ReactNode;
 }
-
-import { CollapsibleSection } from "../../components/ui/CollapsibleSection";
 
 function ReviewCategory({
   title,

@@ -234,9 +234,7 @@ export function ClientListScreen({ onSelectClient }: ClientListScreenProps) {
             <AddClientModal 
               isOpen={isAddModalOpen}
               onClose={() => setIsAddModalOpen(false)}
-              onAdd={(client) => {
-                console.log("Adding client:", client);
-                // Here we would typically update state or call an API
+              onAdd={(_client) => {
                 setIsAddModalOpen(false);
               }}
             />

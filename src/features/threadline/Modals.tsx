@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { BRAND, TEXT_PRIMARY, TEXT_SECONDARY, TYPE_SCALE } from "./constants";
 import { Modal, Card, CardContent, Typography, Badge, Button, Toast, Select, Input, Textarea } from "../../components/ui";
 import { X, ChevronDown, BookOpen, Search, Plus, Check, MessageSquare, FileText } from "lucide-react";
-import { cn } from "../../lib/utils";
+import { cn, normalizeTags } from "../../lib/utils";
 import { MOCK_EVIDENCE_ITEMS, MOCK_CLIENT_DATA, MOCK_CLIENTS } from "./mockData";
 import { CreateSessionModal } from "./modals/CreateSessionModal";
 import { StartAssessmentModal } from "./modals/StartAssessmentModal";
@@ -74,8 +74,6 @@ export function GlobalModals() {
   };
 
   const handleSave = (updatedData: any) => {
-    console.log("Saving item changes:", updatedData);
-    // In a real app, we would call a service to update the item
     setShowToast(true);
     closeModal(); // Close the modal immediately
     
@@ -125,7 +123,6 @@ export function GlobalModals() {
             isOpen={modalType === "create_session"}
             onClose={closeModal}
             onSessionCreate={(info) => {
-              console.log("Session created:", info);
               handleSave({ type: 'session', ...info });
             }}
           />
@@ -133,7 +130,6 @@ export function GlobalModals() {
             isOpen={modalType === "start_assessment"}
             onClose={closeModal}
             onStart={(assessment) => {
-              console.log("Assessment started:", assessment);
               handleSave({ type: 'assessment', ...assessment });
             }}
           />
@@ -141,15 +137,14 @@ export function GlobalModals() {
             isOpen={modalType === "upload_document"}
             onClose={closeModal}
             onUpload={(doc) => {
-              console.log("Document uploaded:", doc);
               handleSave({ type: 'document', ...doc });
             }}
           />
-          <SkipNextStepModal 
-            isOpen={modalType === "skip"} 
-            onClose={closeModal} 
-            item={mockItem} 
-            onConfirm={() => console.log("Confirmed skip")} 
+          <SkipNextStepModal
+            isOpen={modalType === "skip"}
+            onClose={closeModal}
+            item={mockItem}
+            onConfirm={() => {}}
           />
           <CognitiveLoopModal 
             isOpen={modalType === "cognitive_loop"} 
@@ -220,7 +215,6 @@ export function ModifyModal({
   groupBy?: 'source' | 'tag'
 }) {
   const pool = allFindingsPool || GLOBAL_FINDINGS_POOL;
-  console.log("ModifyModal item:", item);
   if (!item && !isAddMode) return null;
   
   // Create a default item for add mode if none provided
@@ -305,42 +299,23 @@ export function ModifyModal({
   const addTag = (findingId: string, tagToAdd: string) => {
     const finding = findings.find(f => f.id === findingId);
     if (!finding) return;
-
-    if (Array.isArray(finding.tags)) {
-      if (!finding.tags.includes(tagToAdd)) {
-        updateFinding(findingId, 'tags', [...finding.tags, tagToAdd]);
-      }
-    } else {
-      const tags = (finding.tag || '').split(',').map((t: string) => t.trim()).filter(Boolean);
-      if (!tags.includes(tagToAdd)) {
-        updateFinding(findingId, 'tag', [...tags, tagToAdd].join(', '));
-      }
+    const current = normalizeTags(finding.tags ?? finding.tag);
+    if (!current.includes(tagToAdd)) {
+      updateFinding(findingId, 'tags', [...current, tagToAdd]);
     }
   };
 
   const removeTag = (findingId: string, tagToRemove: string) => {
     const finding = findings.find(f => f.id === findingId);
     if (!finding) return;
-
-    if (Array.isArray(finding.tags)) {
-      const newTags = finding.tags.filter(t => t.trim() !== tagToRemove.trim());
-      updateFinding(findingId, 'tags', newTags);
-    } else if (finding.tag) {
-      const newTags = finding.tag.split(',')
-        .map(t => t.trim())
-        .filter(t => t !== tagToRemove.trim())
-        .join(', ');
-      updateFinding(findingId, 'tag', newTags);
-    }
+    const newTags = normalizeTags(finding.tags ?? finding.tag).filter(t => t !== tagToRemove.trim());
+    updateFinding(findingId, 'tags', newTags);
   };
 
   const toggleTag = (findingId: string, tag: string) => {
     const finding = findings.find(f => f.id === findingId);
     if (!finding) return;
-    const currentTags = Array.isArray(finding.tags) 
-      ? finding.tags 
-      : (finding.tag || '').split(',').map((t: string) => t.trim()).filter(Boolean);
-    
+    const currentTags = normalizeTags(finding.tags ?? finding.tag);
     if (currentTags.includes(tag)) {
       removeTag(findingId, tag);
     } else {
@@ -564,7 +539,7 @@ export function ModifyModal({
                                 <div className="flex flex-col gap-3">
                                     <div className="flex flex-wrap gap-2 items-center">
                                         {/* Existing Tags */}
-                                        {(Array.isArray(finding.tags) ? finding.tags : finding.tag?.split(',') || []).map((t: string) => t.trim()).filter(Boolean).map((t: string) => (
+                                        {normalizeTags(finding.tags ?? finding.tag).map((t: string) => (
                                             <Badge key={t} variant="soft" className="px-2 py-0.5 text-xs text-slate-500 font-mono flex items-center gap-1 group">
                                                 {t}
                                                 <button 

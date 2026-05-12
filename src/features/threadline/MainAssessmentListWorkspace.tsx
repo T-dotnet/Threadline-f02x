@@ -153,9 +153,7 @@ export function MainAssessmentListWorkspace() {
       <StartAssessmentModal 
         isOpen={isStartAssessmentModalOpen}
         onClose={() => setIsStartAssessmentModalOpen(false)}
-        onStart={(assessment) => {
-          console.log("Starting assessment:", assessment);
-        }}
+        onStart={(_assessment) => {}}
       />
 
       {/* Pagination Footer */}
