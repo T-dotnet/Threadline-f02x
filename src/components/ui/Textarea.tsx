@@ -1,5 +1,5 @@
 import * as React from "react";
-import { cn } from "../../lib/utils";
+import { cn, FORM_LABEL_CLASS } from "../../lib/utils";
 
 export interface TextareaProps
   extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
@@ -12,7 +12,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
     return (
       <div className={cn("relative w-full group", containerClassName)}>
         {label && (
-           <span className="absolute -top-2 left-2 px-1 bg-white text-[10px] uppercase tracking-wider font-bold text-text-secondary z-10 transition-colors group-focus-within:text-primary">
+           <span className={cn("absolute -top-2 left-2 px-1 bg-white z-10 transition-colors group-focus-within:text-primary", FORM_LABEL_CLASS)}>
              {label}
            </span>
         )}

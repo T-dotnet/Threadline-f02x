@@ -4,8 +4,7 @@
  */
 
 import { CheckCircle2, AlertCircle, XCircle } from "lucide-react";
-import { Badge } from "../ui/Badge";
-import { cn } from "../../lib/utils";
+import { IconBadge } from "./IconBadge";
 
 export type ImpactLevel = 'high' | 'medium' | 'low';
 
@@ -36,15 +35,7 @@ export function ImpactBadge({ impact, className, showIcon = true }: ImpactBadgeP
 
   const { variant, icon: Icon, label } = configs[impact];
 
-  return (
-    <Badge 
-      variant={variant} 
-      className={cn("gap-1.5 px-3 h-6", className)}
-    >
-      {showIcon && <Icon size={14} className="shrink-0" />}
-      <span className="font-semibold tracking-tight">{label}</span>
-    </Badge>
-  );
+  return <IconBadge variant={variant} icon={Icon} label={label} showIcon={showIcon} className={className} />;
 }
 
 export function mapScoreToImpact(score: number): ImpactLevel {
