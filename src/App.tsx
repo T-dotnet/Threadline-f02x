@@ -18,9 +18,6 @@ import { cn } from "./lib/utils";
 import { ConditionList } from "./features/conditions/ConditionList";
 import { ConditionDetail } from "./features/conditions/ConditionDetail";
 import { ThreadlineModule } from "./features/threadline/ThreadlineModule";
-import { MainSessionListWorkspace } from "./features/threadline/MainSessionListWorkspace";
-import { MainAssessmentListWorkspace } from "./features/threadline/MainAssessmentListWorkspace";
-import { MainDocumentListWorkspace } from "./features/threadline/MainDocumentListWorkspace";
 import { ChangeLogWorkspace } from "./features/threadline/ChangeLogWorkspace";
 import { GlobalModals } from "./features/threadline/Modals";
 
@@ -29,7 +26,7 @@ import { StyleGuide } from "./components/playground/StyleGuide";
 import { Button } from "./components/ui/Button";
 
 // Context & Types
-import { FeatureToggleProvider, useFeatureFlags } from "./contexts/FeatureToggleContext";
+import { FeatureToggleProvider } from "./contexts/FeatureToggleContext";
 import { Condition } from "./types";
 import { ALL_CONDITIONS } from "./constants";
 import { MOCK_CLIENTS, MOCK_CLIENT_DATA } from "./features/threadline/mockData";
@@ -66,19 +63,6 @@ function AppContent() {
       refs: []
     };
     setConditions([newCondition, ...conditions]);
-  };
-
-  const getActiveItem = () => {
-    const path = location.pathname;
-    const segments = [
-      'Conditions', 'Clients', 'Patients', 'Sessions', 
-      'Assessments', 'Documents', 'Resources', 'Users', 'Playground',
-      'Changelog'
-    ];
-    for (const seg of segments) {
-      if (path.startsWith(`/${seg.toLowerCase()}`)) return seg === 'Changelog' ? 'Change Log' : seg;
-    }
-    return 'Clients';
   };
 
   const isPlayground = location.pathname === '/playground';
@@ -120,24 +104,13 @@ function AppContent() {
       </AnimatePresence>
 
       {!isPlayground && (
-        <Navbar 
-          onClientsClick={() => navigate('/clients')}
-          onPatientsClick={() => navigate('/patients')}
-          onSessionsClick={() => navigate('/sessions')}
-          onAssessmentsClick={() => navigate('/assessments')}
-          onDocumentsClick={() => navigate('/documents')}
-          onResourcesClick={() => navigate('/resources')}
-          onUsersClick={() => navigate('/users')}
-          onConditionsClick={() => navigate('/conditions')}
-          onPlaygroundClick={() => navigate('/playground')}
+        <Navbar
           onAvatarClick={() => setShowFeatureToggles(true)}
-          onChangeLogClick={() => navigate('/changelog')}
           onAddClick={() => {
             const params = new URLSearchParams(location.search);
             params.set("modal", "add_evidence");
             navigate({ search: params.toString() });
           }}
-          activeItem={getActiveItem()}
           isAdminView={isAdminView}
         />
       )}

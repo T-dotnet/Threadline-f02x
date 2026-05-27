@@ -43,7 +43,7 @@ interface StatusBadgeProps {
   showIcon?: boolean;
   onClick?: () => void;
   style?: React.CSSProperties;
-  key?: any;
+  key?: React.Key;
 }
 
 export function StatusBadge({ status, label, className, showIcon = true, onClick, style }: StatusBadgeProps) {

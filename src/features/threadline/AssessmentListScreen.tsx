@@ -4,11 +4,12 @@
  */
 
 import React, { useState } from "react";
-import { 
-  Plus, 
-  ArrowLeft, 
-  Search, 
-  ChevronRight, 
+import {
+  Plus,
+  ArrowLeft,
+  ArrowRight,
+  Search,
+  ChevronRight,
   Layout,
   FileText,
   Activity,
@@ -41,7 +42,6 @@ import { WorkspaceAlertsProvider, useWorkspaceAlerts } from "../../contexts/Work
 
 // Components
 import { ProgressBanner } from "./components/ProgressBanner";
-import { ArrowRight } from "lucide-react";
 
 // Modals & Panels
 import { ShareAssessmentModal } from "./modals/ShareAssessmentModal";
@@ -222,8 +222,7 @@ function AssessmentListScreenContent({ clientId, onBack }: { clientId: string, o
         isOpen={isStartAssessmentModalOpen}
         onClose={() => setIsStartAssessmentModalOpen(false)}
         clientId={clientId}
-        onStart={(assessment) => {
-          console.log("Starting assessment:", assessment);
+        onStart={(_assessment) => {
           // In a real app we would add this to the client's assessments list
         }}
       />

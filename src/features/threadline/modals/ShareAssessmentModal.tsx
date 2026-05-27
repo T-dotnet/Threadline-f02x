@@ -29,8 +29,6 @@ export function ShareAssessmentModal({ isOpen, onClose, assessmentTitle }: Share
   };
 
   const handleShareSms = () => {
-    // Simple mailto as placeholder or just log for now since it's a browser
-    console.log("Sharing via SMS:", shareLink);
     alert("SMS invite prepared for client.");
   };
 
